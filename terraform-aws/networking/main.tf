@@ -26,14 +26,18 @@ resource "aws_vpc" "myvpc_vpc" {
 }
 
 resource "aws_security_group" "my_sg" {
-  name        = "my_public_sg"
-  description = "security group for public access"
+  for_each    = var.security_groups
+  name        = each.value.name
+  description = each.value.description
   vpc_id      = aws_vpc.myvpc_vpc.id
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.access_ip]
+  dynamic "ingress" {
+    for_each = each.value.ingress
+    content {
+      from_port   = ingress.value.from
+      to_port     = ingress.value.to
+      protocol    = ingress.value.protocol
+      cidr_blocks = ingress.value.cidr_blocks
+    }
   }
   egress {
     from_port   = 0

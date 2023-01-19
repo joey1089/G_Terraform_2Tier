@@ -1,15 +1,14 @@
 # ----root/main.tf ---
 
-# local cidr block value for VPC
-locals {
-  vpc_cidr = "10.11.0.0/16"
-}
 
+
+# code execution starts here
 module "networking" {
   source   = "./networking"
   vpc_cidr = local.vpc_cidr
   #add - access_ip for the public security group
-  access_ip = var.access_ip
+  access_ip       = var.access_ip
+  security_groups = local.security_groups
   # public_cidrs  = ["10.10.2.0/24", "10.10.4.0/24"] 
   # put in for loop and in range give subnet range
   # private_cidrs = ["10.10.1.0/24", "10.10.3.0/24"]

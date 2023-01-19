@@ -4,7 +4,7 @@ variable "aws_region" {
 }
 
 variable "access_ip" {
-  type =string
+  type = string
 }
 
 # variable "aws_access_key_id" {}
