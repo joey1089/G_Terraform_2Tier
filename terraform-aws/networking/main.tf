@@ -108,7 +108,7 @@ resource "aws_route_table_association" "Public_RT_association" {
 
 # resource "aws_db_subnet_group" "my_rds_subnet_group" {
 #   name = "my_rds_subnet_group"
-#  https://courses.morethancertified.com/courses/1390185/lectures/31955647
+#   https://courses.morethancertified.com/courses/1390185/lectures/31955647
 #   subnet_ids = aws_subnet.myprivate_subnet.*.id 
 #   tags = {
 #     Name = "my-rds-subnet-grp"

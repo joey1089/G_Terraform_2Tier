@@ -1,7 +1,5 @@
 # ----root/main.tf ---
 
-
-
 # code execution starts here
 module "networking" {
   source   = "./networking"
@@ -12,8 +10,8 @@ module "networking" {
   # public_cidrs  = ["10.10.2.0/24", "10.10.4.0/24"] 
   # put in for loop and in range give subnet range
   # private_cidrs = ["10.10.1.0/24", "10.10.3.0/24"]
-  private_sn_count = 3
-  #length(public_cidrs) - doesn'twork
+  # length(public_cidrs) - doesn'twork
+  private_sn_count = 3  
   public_sn_count = 2
   max_subnets     = 20
   public_cidrs    = [for i in range(2, 255, 2) : cidrsubnet(local.vpc_cidr, 8, i)]
