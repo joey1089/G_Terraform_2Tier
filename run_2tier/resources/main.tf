@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 
 # Deploy Internet Gateway
 resource "aws_internet_gateway" "igw" {
-  vpc_id = var.vpc_id
+  vpc_id = aws_vpc.main.id
 
   tags = {
     Name = "igw"
@@ -21,7 +21,7 @@ resource "aws_internet_gateway" "igw" {
 
 # Deploy 2 Public Subnets
 resource "aws_subnet" "sub_public_1" {
-  vpc_id                  = var.vpc_id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
@@ -32,7 +32,7 @@ resource "aws_subnet" "sub_public_1" {
 }
 
 resource "aws_subnet" "sub_public_2" {
-  vpc_id                  = var.vpc_id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
@@ -44,7 +44,7 @@ resource "aws_subnet" "sub_public_2" {
 
 # Deploy 2 Private Subnets
 resource "aws_subnet" "sub_private_1" {
-  vpc_id                  = var.vpc_id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.3.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = false
@@ -55,7 +55,7 @@ resource "aws_subnet" "sub_private_1" {
 }
 
 resource "aws_subnet" "sub_private_2" {
-  vpc_id                  = var.vpc_id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.4.0/24"
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = false
@@ -67,7 +67,7 @@ resource "aws_subnet" "sub_private_2" {
 
 # Deploy Route Table
 resource "aws_route_table" "rt" {
-  vpc_id = var.vpc_id
+  vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -93,7 +93,7 @@ resource "aws_route_table_association" "route2" {
 resource "aws_security_group" "http_ssh_sg" {
   name        = "http_ssh_sg"
   description = "Allow traffic"
-  vpc_id      = var.vpc_id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 80
@@ -116,10 +116,10 @@ resource "aws_security_group" "http_ssh_sg" {
   }
 }
 
-resource "aws_security_group" "privatesg" {
-  name        = "privatesg"
+resource "aws_security_group" "rds_private_sg" {
+  name        = "rds_private_sg"
   description = "Allow traffic"
-  vpc_id      = var.vpc_id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port       = 3306
@@ -144,10 +144,10 @@ resource "aws_security_group" "privatesg" {
 }
 
 # Deploy ALB Security Group
-resource "aws_security_group" "albsg" {
-  name        = "albsg"
+resource "aws_security_group" "alb_security_grp" {
+  name        = "alb_security_grp"
   description = "ALB Security Group"
-  vpc_id      = var.vpc_id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = "0"
@@ -168,23 +168,23 @@ resource "aws_lb" "alb" {
   name               = "alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.albsg.id]
+  security_groups    = [aws_security_group.alb_security_grp.id]
   subnets            = [aws_subnet.sub_public_1.id, aws_subnet.sub_public_2.id]
 }
 
 # Create ALB Target Group
-resource "aws_lb_target_group" "albtg" {
-  name     = "albtg"
+resource "aws_lb_target_group" "LB_tar_grp" {
+  name     = "LB-tar-grp"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = var.vpc_id
+  vpc_id   = aws_vpc.main.id
 
   depends_on = [aws_vpc.main]
 }
 
 # Deploy LB Target Attachments
 resource "aws_lb_target_group_attachment" "tgattach1" {
-  target_group_arn = aws_lb_target_group.albtg.arn
+  target_group_arn = aws_lb_target_group.LB_tar_grp.arn
   target_id        = aws_instance.instance1.id
   port             = 80
 
@@ -192,7 +192,7 @@ resource "aws_lb_target_group_attachment" "tgattach1" {
 }
 
 resource "aws_lb_target_group_attachment" "tg_attach2" {
-  target_group_arn = aws_lb_target_group.albtg.arn
+  target_group_arn = aws_lb_target_group.LB_tar_grp.arn
   target_id        = aws_instance.instance2.id
   port             = 80
 
@@ -207,7 +207,7 @@ resource "aws_lb_listener" "lblisten" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.albtg.arn
+    target_group_arn = aws_lb_target_group.LB_tar_grp.arn
   }
 }
 
@@ -220,14 +220,7 @@ resource "aws_instance" "instance1" {
   vpc_security_group_ids      = [aws_security_group.http_ssh_sg.id]
   subnet_id                   = aws_subnet.sub_public_1.id
   associate_public_ip_address = true
-  user_data                   = <<-EOF
-        #!/bin/bash
-        yum update -y
-        yum install httpd -y
-        systemctl start httpd
-        systemctl enable httpd
-        echo "<html><body><h1>First instance successfully deployed</h1></body></html>" > /var/www/html/index.html
-        EOF
+  user_data                   = file(var.user-install)
 
   tags = {
     Name = "ec2instance1"
@@ -241,14 +234,7 @@ resource "aws_instance" "instance2" {
   vpc_security_group_ids      = [aws_security_group.http_ssh_sg.id]
   subnet_id                   = aws_subnet.sub_public_2.id
   associate_public_ip_address = true
-  user_data                   = <<-EOF
-        #!/bin/bash
-        yum update -y
-        yum install httpd -y
-        systemctl start httpd
-        systemctl enable httpd
-        echo "<html><body><h1>Second instance successfully deployed</h1></body></html>" > /var/www/html/index.html
-        EOF
+  user_data                   = file(var.user-install)
 
   tags = {
     Name = "ec2instance2"
@@ -262,16 +248,16 @@ resource "aws_db_subnet_group" "dbsubnet" {
 }
 
 # Create RDS Instance
-resource "aws_db_instance" "dbinstance" {
-  allocated_storage      = 5
+resource "aws_db_instance" "rds_instance" {
+  allocated_storage      = 8
   engine                 = "mysql"
   engine_version         = "5.7"
   instance_class         = "db.t2.micro"
   identifier             = "dbinstance"
-  db_name                = "db"
+  db_name                = "db_mysql"
   username               = "admin"
   password               = "password"
   db_subnet_group_name   = aws_db_subnet_group.dbsubnet.id
-  vpc_security_group_ids = [aws_security_group.privatesg.id]
-  skip_final_snapshot    = true
+  vpc_security_group_ids = [aws_security_group.rds_private_sg.id]
+  skip_final_snapshot    = true  
 }

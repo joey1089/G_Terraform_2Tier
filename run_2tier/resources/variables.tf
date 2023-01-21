@@ -1,5 +1,5 @@
 # --- resources/variables.tf ---
 
-variable "vpc_id" {
-  default = "aws_vpc.main.id"
+variable "user-install" {
+  default = "./resources/user-install.sh"
 }
