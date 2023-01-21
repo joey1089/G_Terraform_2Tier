@@ -13,28 +13,24 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "public" {
-  count                   = 2
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index+1}.0/24"
-  availability_zone       = data.aws_availability_zones.all.names[count.index]
+  vpc_id = aws_vpc.main.id
+  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 8, 0)
+  availability_zone = data.aws_availability_zones.all.names[0]
   map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "private_web" {
-  count                   = 2
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index+2}.0/24"
-  availability_zone       = data.aws_availability_zones.all.names[count.index]
-  map_public_ip_on_launch = false
+  vpc_id = aws_vpc.main.id
+  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 8, 1)
+  availability_zone = data.aws_availability_zones.all.names[1]
 }
 
 resource "aws_subnet" "private_rds" {
-  count                   = 2
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index+3}.0/24"
-  availability_zone       = data.aws_availability_zones.all.names[count.index]
-  map_public_ip_on_launch = false
+  vpc_id = aws_vpc.main.id
+  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 8, 2)
+  availability_zone = data.aws_availability_zones.all.names[2]
 }
+
 
 resource "aws_security_group" "bastion" {
   name   = "bastion"
